@@ -1,0 +1,14 @@
+{
+  "name": "tools",
+  "version": "1.0.0",
+  "description": "",
+  "main": "html-to-md.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "private": true,
+  "dependencies": {
+    "axios": "^1.7.7",
+    "turndown": "^7.2.0"
+  }
+}
