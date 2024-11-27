@@ -19,7 +19,7 @@ const data = JSON.stringify({
     ],
     temperature: 0.7,
     max_tokens: -1,
-    stream: true
+    stream: false
 });
 
 // Variable para almacenar las partes completas del mensaje
