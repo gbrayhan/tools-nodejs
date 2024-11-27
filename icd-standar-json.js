@@ -4,6 +4,12 @@ const xlsx = require('xlsx');
 // Ruta al archivo XLSX
 const xlsxFilePath = 'docs/icd/SimpleTabulation-ICD-11-MMS-es.xlsx';
 
+const cleanTitle = (title) => {
+    if (typeof title !== 'string') return title;
+    return title.replace(/^[-\s]+/, '').trim();
+};
+
+
 try {
     // Leer el archivo XLSX
     const workbook = xlsx.readFile(xlsxFilePath);
@@ -71,27 +77,25 @@ try {
 
         return {
             ChapterNo: chapter.ChapterNo,
-            ChapterTitleEN: chapter.ChapterTitleEN,
-            ChapterTitle: chapter.ChapterTitle,
+            ChapterTitleEN: cleanTitle(chapter.ChapterTitleEN),
+            ChapterTitle: cleanTitle(chapter.ChapterTitle),
             BlockId: block.BlockId,
-            BlockTitleEN: block.BlockTitleEN,
-            BlockTitle: block.BlockTitle,
+            BlockTitleEN: cleanTitle(block.BlockTitleEN),
+            BlockTitle: cleanTitle(block.BlockTitle),
             Code: category['Code'] || '',
-            TitleEN: category['TitleEN'] || '',
-            Title: category['Title'] || '',
+            TitleEN: cleanTitle(category['TitleEN'] || ''),
+            Title: cleanTitle(category['Title'] || ''),
             ClassKind: category['ClassKind'] || '',
             DepthInKind: category['DepthInKind'] || '',
             IsResidual: category['IsResidual'] || '',
             BrowserLink: category['BrowserLink'] || '',
             isLeaf: category['isLeaf'] || '',
             PrimaryTabulation: category['Primary tabulation'] || '',
-            Grouping: {
-                Grouping1: category['Grouping1'] || '',
-                Grouping2: category['Grouping2'] || '',
-                Grouping3: category['Grouping3'] || '',
-                Grouping4: category['Grouping4'] || '',
-                Grouping5: category['Grouping5'] || ''
-            },
+            Grouping1: category['Grouping1'] || '',
+            Grouping2: category['Grouping2'] || '',
+            Grouping3: category['Grouping3'] || '',
+            Grouping4: category['Grouping4'] || '',
+            Grouping5: category['Grouping5'] || '',
             Version: category['Version:2024 Jan 21 - 22:30 UTC'] || ''
         };
     });
