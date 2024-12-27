@@ -4,9 +4,10 @@ node_modules
 
 docs/html-to-md
 docs/icd
+docs/compare-database/*.sql
 
 package-lock.json
 
 
 .env
-
+.DS_Storegit

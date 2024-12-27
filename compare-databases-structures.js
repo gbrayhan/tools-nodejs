@@ -148,8 +148,8 @@ db1.connect(err => {
                 const fecha = new Date().toISOString().slice(0,10).replace(/-/g, '');
 
                 // Definir los nombres de los archivos de salida
-                const outputFileDB1 = `ddl_${dbConfigA.dbName}_${fecha}.sql`;
-                const outputFileDB2 = `ddl_${dbConfigB.dbName}_${fecha}.sql`;
+                const outputFileDB1 = `docs/compare-database/ddl_${dbConfigA.dbName}_${fecha}.sql`;
+                const outputFileDB2 = `docs/compare-database/ddl_${dbConfigB.dbName}_${fecha}.sql`;
 
                 // Exportar DDL de ambas bases de datos
                 exportDDL(dbConfigA, outputFileDB1, (err) => {
