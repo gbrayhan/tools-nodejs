@@ -9,11 +9,12 @@ const DDL_FILE = 'create_table.sql';
 const DML_FILE = 'insert_data.sql';
 const BATCH_SIZE = 1000;
 
-// Función para determinar el tipo de dato de MySQL
-function determineColumnType(values) {
+// Función para determinar el tipo de dato de MySQL y tamaño para VARCHAR
+function determineColumnType(values, header) {
     let isInt = true;
     let isFloat = true;
     let isDate = true;
+    let maxLength = 0;
 
     for (let value of values) {
         if (value === null || value === undefined || value === '') continue;
@@ -30,14 +31,27 @@ function determineColumnType(values) {
         if (isDate && isNaN(date.getTime())) {
             isDate = false;
         }
+        // Calcular la longitud máxima para VARCHAR
+        if (typeof value === 'string') {
+            const length = value.length;
+            if (length > maxLength) {
+                maxLength = length;
+            }
+        }
         // Si ya no es ninguno, salir
-        if (!isInt && !isFloat && !isDate) break;
+        if (!isInt && !isFloat && !isDate) {
+            // Continuar para calcular maxLength si es VARCHAR
+            continue;
+        }
     }
 
     if (isInt) return 'INT';
     if (isFloat) return 'DOUBLE';
     if (isDate) return 'DATE';
-    return 'VARCHAR(255)';
+    // Definir un tamaño razonable para VARCHAR basado en maxLength
+    // Puedes establecer un límite superior si lo deseas
+    const varcharSize = Math.min(Math.max(maxLength, 1), 255); // Máximo 255
+    return `VARCHAR(${varcharSize})`;
 }
 
 // Leer el archivo Excel
@@ -55,15 +69,15 @@ if (jsonData.length === 0) {
 // Obtener las cabeceras
 const headers = Object.keys(jsonData[0]);
 
-// Determinar los tipos de columnas
+// Determinar los tipos de columnas con tamaños ajustados
 const columnTypes = {};
 headers.forEach(header => {
     const values = jsonData.map(row => row[header]);
-    columnTypes[header] = determineColumnType(values);
+    columnTypes[header] = determineColumnType(values, header);
 });
 
 // Generar el DDL
-let ddl = `CREATE TABLE ${TABLE_NAME} (\n`;
+let ddl = `CREATE TABLE \`${TABLE_NAME}\` (\n`;
 headers.forEach((header, index) => {
     ddl += `  \`${header}\` ${columnTypes[header]}`;
     ddl += index < headers.length - 1 ? ',\n' : '\n';
@@ -88,13 +102,18 @@ jsonData.forEach((row, rowIndex) => {
         if (columnTypes[header] === 'INT' || columnTypes[header] === 'DOUBLE') {
             return value;
         }
+        if (columnTypes[header].startsWith('VARCHAR')) {
+            // Para cadenas de texto, escapar comillas simples
+            const escaped = String(value).replace(/'/g, "''");
+            return `'${escaped}'`;
+        }
         if (columnTypes[header] === 'DATE') {
             // Formatear la fecha a 'YYYY-MM-DD'
             const date = new Date(value);
             const formattedDate = isNaN(date.getTime()) ? 'NULL' : `'${date.toISOString().split('T')[0]}'`;
             return formattedDate;
         }
-        // Para cadenas de texto, escapar comillas simples
+        // Por defecto, tratar como cadena
         const escaped = String(value).replace(/'/g, "''");
         return `'${escaped}'`;
     });
@@ -103,7 +122,7 @@ jsonData.forEach((row, rowIndex) => {
 
     // Cuando el batch alcanza el tamaño definido, agregar al DML
     if ((rowIndex + 1) % BATCH_SIZE === 0 || rowIndex === jsonData.length - 1) {
-        dml += `INSERT INTO ${TABLE_NAME} (${headers.map(h => `\`${h}\``).join(', ')}) VALUES\n`;
+        dml += `INSERT INTO \`${TABLE_NAME}\` (${headers.map(h => `\`${h}\``).join(', ')}) VALUES\n`;
         dml += batch.join(',\n') + ';\n';
         batch = [];
     }
