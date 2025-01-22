@@ -9,50 +9,87 @@ const DDL_FILE = 'create_table.sql';
 const DML_FILE = 'insert_data.sql';
 const BATCH_SIZE = 1000;
 
-// Función para determinar el tipo de dato de MySQL y tamaño para VARCHAR
-function determineColumnType(values, header) {
-    let isInt = true;
-    let isFloat = true;
-    let isDate = true;
-    let maxLength = 0;
-
-    for (let value of values) {
-        if (value === null || value === undefined || value === '') continue;
-        // Verificar si es entero
-        if (isInt && !Number.isInteger(Number(value))) {
-            isInt = false;
-        }
-        // Verificar si es float
-        if (isFloat && isNaN(Number(value))) {
-            isFloat = false;
-        }
-        // Verificar si es fecha
-        const date = new Date(value);
-        if (isDate && isNaN(date.getTime())) {
-            isDate = false;
-        }
-        // Calcular la longitud máxima para VARCHAR
-        if (typeof value === 'string') {
-            const length = value.length;
-            if (length > maxLength) {
-                maxLength = length;
-            }
-        }
-        // Si ya no es ninguno, salir
-        if (!isInt && !isFloat && !isDate) {
-            // Continuar para calcular maxLength si es VARCHAR
-            continue;
-        }
-    }
-
-    if (isInt) return 'INT';
-    if (isFloat) return 'DOUBLE';
-    if (isDate) return 'DATE';
-    // Definir un tamaño razonable para VARCHAR basado en maxLength
-    // Puedes establecer un límite superior si lo deseas
-    const varcharSize = Math.min(Math.max(maxLength, 1), 255); // Máximo 255
-    return `VARCHAR(${varcharSize})`;
-}
+// Definir los tipos de columnas según el esquema proporcionado
+const columnTypes = {
+    'CONSECUTIVO': 'INT',
+    'LETRA': 'VARCHAR(1)',
+    'CATALOG_KEY': 'VARCHAR(4)',
+    'NO. CARACTERES': 'INT',
+    'NOMBRE': 'VARCHAR(241)',
+    'CODIGOX': 'VARCHAR(2)',
+    'LSEX': 'VARCHAR(6)',
+    'LINF': 'VARCHAR(4)',
+    'LSUP': 'VARCHAR(4)',
+    'TRIVIAL': 'VARCHAR(2)',
+    'ERRADICADO': 'VARCHAR(2)',
+    'N_INTER': 'VARCHAR(2)',
+    'NIN': 'VARCHAR(2)',
+    'NINMTOBS': 'VARCHAR(2)',
+    'COD_SIT_LESION': 'VARCHAR(2)',
+    'NO_CBD': 'VARCHAR(2)',
+    'CBD': 'VARCHAR(2)',
+    'NO_APH': 'VARCHAR(2)',
+    'AF_PRIN': 'VARCHAR(2)',
+    'DIA_SIS': 'VARCHAR(2)',
+    'CLAVE_PROGRAMA_SIS': 'VARCHAR(2)',
+    'COD_COMPLEMEN_MORBI': 'VARCHAR(2)',
+    'DIA_FETAL': 'VARCHAR(2)',
+    'DEF_FETAL_CM': 'VARCHAR(2)',
+    'DEF_FETAL_CBD': 'VARCHAR(2)',
+    'CLAVE_CAPITULO': 'VARCHAR(5)',
+    'CAPITULO': 'VARCHAR(121)',
+    'LISTA1': 'VARCHAR(3)',
+    'GRUPO1': 'VARCHAR(3)',
+    'LISTA5': 'VARCHAR(3)',
+    'RUBRICA_TYPE': 'VARCHAR(3)',
+    'YEAR_MODIFI': 'VARCHAR(189)',
+    'YEAR_APLICACION': 'VARCHAR(100)',
+    'VALID': 'VARCHAR(2)',
+    'PRINMORTA': 'VARCHAR(4)',
+    'PRINMORBI': 'VARCHAR(4)',
+    'LM_MORBI': 'VARCHAR(4)',
+    'LM_MORTA': 'VARCHAR(4)',
+    'LGBD165': 'VARCHAR(200)',
+    'LOMSBECK': 'VARCHAR(100)',
+    'LGBD190': 'VARCHAR(100)',
+    'NOTDIARIA': 'VARCHAR(2)',
+    'NOTSEMANAL': 'VARCHAR(2)',
+    'SISTEMA_ESPECIAL': 'VARCHAR(2)',
+    'BIRMM': 'VARCHAR(2)',
+    'CVE_CAUSA_TYPE': 'VARCHAR(2)',
+    'CAUSA_TYPE': 'VARCHAR(41)',
+    'EPI_MORTA': 'VARCHAR(2)',
+    'EDAS_E_IRAS_EN_M5': 'VARCHAR(2)',
+    'CVE_MATERNAS-SEED-EPID': 'VARCHAR(2)',
+    'EPI_MORTA_M5': 'VARCHAR(2)',
+    'EPI_MORBI': 'VARCHAR(2)',
+    'DEF_MATERNAS': 'INT',
+    'ES_CAUSES': 'VARCHAR(2)',
+    'NUM_CAUSES': 'VARCHAR(100)',
+    'ES_SUIVE_MORTA': 'VARCHAR(2)',
+    'ES_SUIVE_MORB': 'VARCHAR(2)',
+    'EPI_CLAVE': 'VARCHAR(5)',
+    'EPI_CLAVE_DESC': 'VARCHAR(98)',
+    'ES_SUIVE_NOTIN': 'VARCHAR(2)',
+    'ES_SUIVE_EST_EPI': 'VARCHAR(2)',
+    'ES_SUIVE_EST_BROTE': 'VARCHAR(2)',
+    'SINAC': 'VARCHAR(2)',
+    'PRIN_SINAC': 'VARCHAR(2)',
+    'PRIN_SINAC_GRUPO': 'VARCHAR(2)',
+    'DESCRIPCION_SINAC_GRUPO': 'VARCHAR(143)',
+    'PRIN_SINAC_SUBGRUPO': 'VARCHAR(3)',
+    'DESCRIPCION_SINAC_SUBGRUPO': 'VARCHAR(153)',
+    'DAGA': 'VARCHAR(2)',
+    'ASTERISCO': 'VARCHAR(2)',
+    'PRIN_MM': 'VARCHAR(2)',
+    'PRIN_MM_GRUPO': 'VARCHAR(2)',
+    'DESCRIPCION_MM_GRUPO': 'VARCHAR(84)',
+    'PRIN_MM_SUBGRUPO': 'VARCHAR(100)',
+    'DESCRIPCION_MM_SUBGRUPO': 'VARCHAR(92)',
+    'COD_ADI_MORT': 'VARCHAR(2)',
+    '__EMPTY': 'INT',
+    '__EMPTY_1': 'INT'
+};
 
 // Leer el archivo Excel
 const workbook = XLSX.readFile(INPUT_FILE);
@@ -67,14 +104,7 @@ if (jsonData.length === 0) {
 }
 
 // Obtener las cabeceras
-const headers = Object.keys(jsonData[0]);
-
-// Determinar los tipos de columnas con tamaños ajustados
-const columnTypes = {};
-headers.forEach(header => {
-    const values = jsonData.map(row => row[header]);
-    columnTypes[header] = determineColumnType(values, header);
-});
+const headers = Object.keys(columnTypes);
 
 // Generar el DDL
 let ddl = `CREATE TABLE \`${TABLE_NAME}\` (\n`;
@@ -88,36 +118,34 @@ ddl += `) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n`;
 fs.writeFileSync(DDL_FILE, ddl);
 console.log(`DDL generado en ${DDL_FILE}`);
 
+// Función para formatear los valores según el tipo de columna
+function formatValue(value, type) {
+    if (value === null || value === undefined || value === '') {
+        return 'NULL';
+    }
+    if (type === 'INT' || type === 'DOUBLE') {
+        return value;
+    }
+    if (type.startsWith('VARCHAR')) {
+        const escaped = String(value).replace(/'/g, "''");
+        return `'${escaped}'`;
+    }
+    if (type === 'DATE') {
+        const date = new Date(value);
+        const formattedDate = isNaN(date.getTime()) ? 'NULL' : `'${date.toISOString().split('T')[0]}'`;
+        return formattedDate;
+    }
+    // Por defecto, tratar como cadena
+    const escaped = String(value).replace(/'/g, "''");
+    return `'${escaped}'`;
+}
+
 // Generar el DML
 let dml = '';
 let batch = [];
 jsonData.forEach((row, rowIndex) => {
     // Escapar y formatear los valores
-    const values = headers.map(header => {
-        let value = row[header];
-        if (value === null || value === undefined) {
-            return 'NULL';
-        }
-        // Verificar el tipo de dato
-        if (columnTypes[header] === 'INT' || columnTypes[header] === 'DOUBLE') {
-            return value;
-        }
-        if (columnTypes[header].startsWith('VARCHAR')) {
-            // Para cadenas de texto, escapar comillas simples
-            const escaped = String(value).replace(/'/g, "''");
-            return `'${escaped}'`;
-        }
-        if (columnTypes[header] === 'DATE') {
-            // Formatear la fecha a 'YYYY-MM-DD'
-            const date = new Date(value);
-            const formattedDate = isNaN(date.getTime()) ? 'NULL' : `'${date.toISOString().split('T')[0]}'`;
-            return formattedDate;
-        }
-        // Por defecto, tratar como cadena
-        const escaped = String(value).replace(/'/g, "''");
-        return `'${escaped}'`;
-    });
-
+    const values = headers.map(header => formatValue(row[header], columnTypes[header]));
     batch.push(`(${values.join(', ')})`);
 
     // Cuando el batch alcanza el tamaño definido, agregar al DML
