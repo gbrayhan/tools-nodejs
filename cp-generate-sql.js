@@ -64,7 +64,7 @@ allData.forEach((row, rowIndex) => {
   const values = headers.map(header => formatValue(row[header], columnTypes[header] || 'VARCHAR(255)'));
   batch.push(`(${values.join(', ')})`);
   if ((rowIndex + 1) % BATCH_SIZE === 0 || rowIndex === allData.length - 1) {
-    dml += `INSERT INTO \`${TABLE_NAME}\` (${headers.map(h => `\`${h}\``).join(', ')}) VALUES\n`;
+    dml += `INSERT INTO ${TABLE_NAME} (${headers.map(h => `${h}`).join(', ')}) VALUES\n`;
     dml += batch.join(',\n') + ';\n';
     batch = [];
   }
